@@ -1,0 +1,104 @@
+pipeline {
+    agent any
+
+    tools { 
+        maven 'MVN3.0.5' 
+        jdk 'Java1.8-202' 
+    }
+
+    stages {
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        stage('Git Pull') {
+            steps {
+                git credentialsId: 'github-pwd', url: 'https://github.com/luke-luo/pipeline-demo.git'
+            }
+        }
+        stage ('Initialize') {
+            steps {
+                sh '''
+                    echo "PATH = ${PATH}"
+                    echo "M2_HOME = ${M2_HOME}"
+                ''' 
+            }
+        }    
+        stage('MVN Package') {
+            environment {
+                mvnHome305 = tool name: 'MVN3.0.5', type: 'maven'
+                mvnCMD305 = "${mvnHome305}/bin/mvn"
+                jdk = tool name: 'Java1.8-202', type: 'jdk'
+            }
+              
+            steps {
+                sh label: '', script: '''
+                    #${mvnCMD305} -version
+                    #${mvnCMD305} clean package
+                    mvn -version
+                    mvn clean package
+                    '''
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh label: '', script: '''
+                    docker build -t lukexi/my-app:2.0.0 .
+                    '''
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([string(credentialsId: 'DockerHubToken', variable: 'dockerHubToken')]) {
+                    // some block
+                    sh label: '', script: '''
+                        docker login -u lukexi -p ${dockerHubToken}
+                        docker push lukexi/my-app:2.0.0
+                        '''
+                }
+                
+            }
+        }
+
+        stage('Install Docker on EC2') {
+            environment {
+                dockerRun1 = 'sudo yum update -y'
+                dockerRun2 = 'sudo yum install -y docker'
+                dockerRun3 = 'sudo service docker start'
+                dockerRun4 = 'sudo usermod -a -G docker ec2-user'
+            }
+            steps {
+                sshagent(['qa-1']) {
+                    // some block
+                    sh "ssh -o StrictHostKeyChecking=no ec2-user@100.24.54.218 ${dockerRun1}"
+                    sh "ssh -o StrictHostKeyChecking=no ec2-user@100.24.54.218 ${dockerRun2}"
+                    sh "ssh -o StrictHostKeyChecking=no ec2-user@100.24.54.218 ${dockerRun3}"
+                    sh "ssh -o StrictHostKeyChecking=no ec2-user@100.24.54.218 ${dockerRun4}"
+
+                }
+            }
+        }
+
+
+        stage('Run Container on EC2') {
+            environment {
+                dockerRunLogin = 'docker login -u lukexi -p 3671bafd-4f99-44e3-bdfe-b9bf28302aae'
+                dockerRunRun = 'docker run -p 8080:8080 -d --name my-app-demo lukexi/my-app:2.0.0'
+            }
+            steps {
+                sshagent(['qa-1']) {
+                    // some block
+                    print "Docker login"
+                    sh "ssh -o StrictHostKeyChecking=no ec2-user@100.24.54.218 ${dockerRunLogin}"
+                    print "Docker run"
+                    sh "ssh -o StrictHostKeyChecking=no ec2-user@100.24.54.218 ${dockerRunRun}"
+
+                }
+            }
+        }
+
+
+    }
+}
