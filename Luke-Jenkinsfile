@@ -3,7 +3,7 @@ pipeline {
 
     tools { 
         maven 'MVN3.6.3' 
-        jdk 'Java1.8-202' 
+        jdk 'Java1.8-221' 
     }
 
     stages {
@@ -29,7 +29,7 @@ pipeline {
             environment {
                 mvnHome363 = tool name: 'MVN3.6.3', type: 'maven'
                 mvnCMD363 = "${mvnHome363}/bin/mvn"
-                jdk = tool name: 'Java1.8-202', type: 'jdk'
+                jdk = tool name: 'Java1.8-221', type: 'jdk'
             }
               
             steps {
