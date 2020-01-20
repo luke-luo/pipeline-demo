@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools { 
-        maven 'MVN3.0.5' 
+        maven 'MVN3.6.3' 
         jdk 'Java1.8-202' 
     }
 
@@ -27,8 +27,8 @@ pipeline {
         }    
         stage('MVN Package') {
             environment {
-                mvnHome305 = tool name: 'MVN3.0.5', type: 'maven'
-                mvnCMD305 = "${mvnHome305}/bin/mvn"
+                mvnHome363 = tool name: 'MVN3.6.3', type: 'maven'
+                mvnCMD363 = "${mvnHome363}/bin/mvn"
                 jdk = tool name: 'Java1.8-202', type: 'jdk'
             }
               
